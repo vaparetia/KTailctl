@@ -25,3 +25,5 @@ devenv.local.nix
 .pre-commit-config.yaml
 
 *.qml.bak
+/out/
+compile_commands.json

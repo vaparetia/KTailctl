@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Fabian Köhler <me@fkoehler.org>
 
 #include <QApplication>
+#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QQuickWindow>
@@ -17,6 +18,7 @@
 
 #include "about.hpp"
 #include "app.hpp"
+#include "ktailctlconfig.h"
 #include "logging.hpp"
 #include "peer_model.hpp"
 #include "preferences.hpp"
@@ -37,34 +39,39 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     QQuickStyle::setStyle(QStringLiteral("macOS"));
 #endif
     QApplication app(argc, argv); // NOLINT(misc-const-correctness)
-    KLocalizedString::setApplicationDomain("org.fkoehler.KTailctl");
-    QCoreApplication::setOrganizationName(QStringLiteral("fkoehler.org"));
-    QCoreApplication::setApplicationName(QStringLiteral("KTailctl"));
 
     QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("ktailctl")));
 
+    QCoreApplication::setOrganizationDomain(QStringLiteral("fkoehler.org"));
+    QCoreApplication::setApplicationName(QStringLiteral("KTailctl"));
+    QCoreApplication::setOrganizationName(QStringLiteral("fkoehler.org"));
+    KLocalizedString::setApplicationDomain(QByteArrayLiteral("org.fkoehler.KTailctl"));
     KAboutData aboutData( // NOLINT(misc-const-correctness)
-
-        // The program name used internally.
+                          // The program name used internally.
         QStringLiteral("KTailctl"),
         // A displayable program name string.
         i18nc("@title", "KTailctl"),
         // The program version string.
-        QStringLiteral(TAILCTL_VERSION_STRING),
+        QStringLiteral(KTAILCTL_VERSION_STRING),
         // Short description of what the app does.
         i18n("GUI for tailscale on the KDE Plasma desktop"),
         // The license this code is released under.
         KAboutLicense::GPL,
         // Copyright Statement.
-        i18n("(c) 2023"));
-    aboutData.setHomepage("https://github.com/f-koehler/KTailctl");
+        i18n("(c) Fabian Koehler 2023"));
+
     aboutData.setBugAddress("https://github.com/f-koehler/KTailctl/issues");
+    aboutData.setDesktopFileName(QStringLiteral("org.fkoehler.KTailctl"));
+    aboutData.setHomepage(QStringLiteral("https://github.com/f-koehler/KTailctl"));
+    aboutData.setOrganizationDomain("fkoehler.org");
     aboutData.addAuthor(i18nc("@info:credit", "Fabian Köhler"),
                         i18nc("@info:credit", "Project Maintainer"),
                         QStringLiteral("me@fkoehler.org"),
                         QStringLiteral("https://fkoehler.org"));
     aboutData.setProgramLogo(QIcon(QStringLiteral(":/icons/logo.svg")));
     KAboutData::setApplicationData(aboutData);
+    KDBusService service(KDBusService::Unique);
+    qInfo() << "KDBusService name:" << service.serviceName();
 
     auto *about = new AboutType();
     auto *application = new App();
@@ -88,10 +95,11 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qmlRegisterType<SpeedStatistics>("org.fkoehler.KTailctl", 1, 0, "SpeedStatistics");
     qmlRegisterType<Statistics>("org.fkoehler.KTailctl", 1, 0, "Statistics");
-    qmlRegisterType<KTailctlConfig>("org.fkoehler.KTailctl", 1, 0, "KTailctlConfig");
+    qmlRegisterType<KTailctlConfig>("org.fkoehler.KTailctl", 1, 0, "KTailctlConfig"); // TODO(fk): remove, now handled via CMake
 
     engine.rootContext()->setContextObject(new KLocalizedContext(&engine));
-    engine.load(QUrl(QStringLiteral("qrc:///main.qml")));
+    engine.rootContext()->setContextProperty(QStringLiteral("styleName"), QQuickStyle::name());
+    engine.loadFromModule("org.fkoehler.KTailctl", "Main");
     if (engine.rootObjects().isEmpty()) {
         return -1;
     }
@@ -107,10 +115,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     // for screenshots for flatpak
     // window->resize(QSize(1598, 869));
 
-    if (engine.rootObjects().isEmpty()) {
-        return -1;
-    }
-    KDBusService service(KDBusService::Unique);
     QObject::connect(&service, &KDBusService::activateRequested, &engine, [&engine, window](const QStringList &, const QString &) {
         if (window) {
             window->show();
@@ -118,6 +122,11 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
             window->raise();
             KWindowSystem::activateWindow(window);
         }
+    });
+
+    QApplication::setQuitOnLastWindowClosed(!KTailctlConfig::self()->enableTrayIcon());
+    QObject::connect(KTailctlConfig::self(), &KTailctlConfig::enableTrayIconChanged, []() {
+        QApplication::setQuitOnLastWindowClosed(!KTailctlConfig::self()->enableTrayIcon());
     });
 
     return QApplication::exec();

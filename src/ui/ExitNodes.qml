@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Fabian Köhler <me@fkoehler.org>
 
-import QtQuick.Layouts 1.15
-import QtQuick 2.15
-import QtQuick.Controls 2.15 as Controls
-import org.kde.kirigami 2.19 as Kirigami
-import org.kde.kirigamiaddons.formcard 1.0 as FormCard
-import org.fkoehler.KTailctl 1.0
-import org.fkoehler.KTailctl.Components 1.0 as KTailctlComponents
+import QtQuick.Layouts
+import QtQuick
+import QtQuick.Controls as Controls
+import org.kde.kirigami as Kirigami
+import org.kde.kirigamiaddons.formcard as FormCard
+import org.fkoehler.KTailctl
+import org.fkoehler.KTailctl.Components as KTailctlComponents
 
 Kirigami.ScrollablePage {
     id: exitNodes
@@ -56,6 +56,10 @@ Kirigami.ScrollablePage {
                     }
                 }
 
+                FormCard.FormDelegateSeparator {
+                    visible: Tailscale.hasSuggestedExitNode
+                }
+
                 FormCard.FormButtonDelegate {
                     icon.name: Tailscale.suggestedExitNode.isMullvad ? "country-flag-" + Tailscale.suggestedExitNode.countryCode.toLowerCase() : "network-vpn"
                     text: "Use suggested: " + Tailscale.suggestedExitNode.dnsName
@@ -64,6 +68,10 @@ Kirigami.ScrollablePage {
                     onClicked: {
                         Tailscale.setExitNode(Tailscale.suggestedExitNode.dnsName);
                     }
+                }
+
+                FormCard.FormDelegateSeparator {
+                    visible: App.config.lastUsedExitNode.length > 0
                 }
 
                 FormCard.FormButtonDelegate {
@@ -98,12 +106,18 @@ Kirigami.ScrollablePage {
                 Repeater {
                     model: Tailscale.exitNodeModel
 
-                    delegate: FormCard.FormButtonDelegate {
-                        icon.name: "network-vpn"
-                        text: dnsName
+                    delegate: ColumnLayout {
+                        FormCard.FormButtonDelegate {
+                            icon.name: "network-vpn"
+                            text: dnsName
 
-                        onClicked: {
-                            Tailscale.setExitNode(dnsName);
+                            onClicked: {
+                                Tailscale.setExitNode(dnsName);
+                            }
+                        }
+
+                        FormCard.FormDelegateSeparator {
+                            visible: index < Tailscale.exitNodeModel.rowCount() - 1
                         }
                     }
                 }
@@ -127,13 +141,19 @@ Kirigami.ScrollablePage {
                 Repeater {
                     model: Tailscale.mullvadCountryModel
 
-                    delegate: FormCard.FormButtonDelegate {
-                        icon.name: "country-flag-" + countryCode.toLowerCase()
-                        text: countryName
+                    delegate: ColumnLayout {
+                        FormCard.FormButtonDelegate {
+                            icon.name: "country-flag-" + countryCode.toLowerCase()
+                            text: countryName
 
-                        onClicked: {
-                            App.mullvadNodesForCountryModel.setFilterFixedString(countryCode);
-                            pageStack.layers.push("qrc:MullvadNodes.qml");
+                            onClicked: {
+                                App.mullvadNodesForCountryModel.setFilterFixedString(countryCode);
+                                pageStack.layers.push(Qt.createComponent("org.fkoehler.KTailctl", "MullvadNodes"));
+                            }
+                        }
+
+                        FormCard.FormDelegateSeparator {
+                            visible: index < Tailscale.mullvadCountryModel.rowCount() - 1
                         }
                     }
                 }

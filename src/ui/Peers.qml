@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Fabian Köhler <me@fkoehler.org>
 
-import QtQuick 2.15
-import QtQuick.Controls 2.15 as Controls
-import QtQuick.Layouts 1.15
-import org.fkoehler.KTailctl 1.0
-import org.fkoehler.KTailctl.Components 1.0 as KTailctlComponents
-import org.kde.kirigami 2.19 as Kirigami
+import QtQuick
+import QtQuick.Controls as Controls
+import QtQuick.Layouts
+import org.fkoehler.KTailctl
+import org.fkoehler.KTailctl.Components as KTailctlComponents
+import org.kde.kirigami as Kirigami
 
 Kirigami.ScrollablePage {
     id: peers
@@ -41,96 +41,69 @@ Kirigami.ScrollablePage {
 
         headerPositioning: ListView.OverlayHeader
         model: App.peerModel
+        spacing: Kirigami.Units.smallSpacing
         visible: Tailscale.success
 
         delegate: Kirigami.AbstractCard {
-            contentItem: Item {
-                implicitHeight: delegateLayout.implicitHeight
-                implicitWidth: delegateLayout.implicitWidth
+            contentItem: ColumnLayout {
+                anchors.fill: parent
 
-                GridLayout {
-                    id: delegateLayout
+                RowLayout {
+                    Layout.fillWidth: true
 
-                    columnSpacing: Kirigami.Units.smallSpacing
-                    columns: 3
-                    rowSpacing: Kirigami.Units.largeSpacing
+                    Row {
+                        Layout.alignment: Qt.AlignLeft
+                        Layout.fillWidth: true
 
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        top: parent.top
-                    }
-
-                    Kirigami.Icon {
-                        source: Util.loadOsIcon(os)
-                    }
-
-                    ColumnLayout {
-                        RowLayout {
-                            Kirigami.Chip {
-                                checkable: false
-                                checked: false
-                                closable: false
-                                icon.name: "edit-copy"
-                                text: dnsName
-
-                                onClicked: {
-                                    Util.setClipboardText(dnsName);
-                                }
-                            }
-
-                            Kirigami.Icon {
-                                source: isOnline ? "online" : "offline"
-                            }
-
-                            // Kirigami.Icon {
-                            //     source: "cloud-upload"
-                            // }
-
-                            // Controls.Label {
-                            //     text: Util.formatSpeedHumanReadable(Tailscale.statistics.speedUp(tailscaleID).average1Second)
-                            // }
-
-                            // Kirigami.Icon {
-                            //     source: "cloud-download"
-                            // }
-
-                            // Controls.Label {
-                            //     text: Util.formatSpeedHumanReadable(Tailscale.statistics.speedDown(tailscaleID).average1Second)
-                            // }
-
+                        Kirigami.Icon {
+                            source: Util.loadOsIcon(os)
                         }
 
-                        Kirigami.Separator {
-                            Layout.fillWidth: true
+                        Kirigami.Icon {
+                            source: isOnline ? "online" : "offline"
                         }
 
-                        Flow {
-                            spacing: Kirigami.Units.smallSpacing
+                        Controls.ToolButton {
+                            icon.name: "edit-copy"
+                            text: dnsName
 
-                            Repeater {
-                                model: tailscaleIps
+                            onClicked: {
+                                Util.setClipboardText(dnsName);
+                            }
+                        }
 
-                                Kirigami.Chip {
-                                    checkable: false
-                                    checked: false
-                                    closable: false
-                                    icon.name: "edit-copy"
-                                    text: modelData
+                        Controls.ToolButton {
+                            icon.name: "edit-copy"
+                            text: tailscaleIps[0]
 
-                                    onClicked: {
-                                        Util.setClipboardText(modelData);
-                                    }
-                                }
+                            onClicked: {
+                                Util.setClipboardText(tailscaleIps[0]);
                             }
                         }
                     }
 
-                    ColumnLayout {
-                        Controls.Button {
+                    Row {
+                        Layout.alignment: Qt.AlignRight
+
+                        Controls.ToolButton {
                             Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
                             Controls.ToolTip.text: text
                             Controls.ToolTip.visible: hovered
+                            Layout.alignment: Qt.AlignRight
+                            icon.name: "view-list-details"
+                            text: i18nc("@label", "Details")
+
+                            onClicked: {
+                                App.setPeerDetails(tailscaleID);
+                                pageStack.layers.push(Qt.createComponent("org.fkoehler.KTailctl", "Peer"));
+                            }
+                        }
+
+                        Controls.ToolButton {
+                            Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
+                            Controls.ToolTip.text: text
+                            Controls.ToolTip.visible: hovered
+                            Layout.alignment: Qt.AlignRight
                             display: Controls.Button.IconOnly
                             icon.name: "menu_new"
                             text: i18nc("@label", "Menu")
@@ -163,7 +136,7 @@ Kirigami.ScrollablePage {
 
                                 Controls.MenuItem {
                                     icon.name: "internet-services"
-                                    text: i18nc("@label", isCurrentExitNode ? "Unset exit node" : "Use exit node")
+                                    text: isCurrentExitNode ? i18nc("@label", "Unset exit node") : i18nc("@label", "Use exit node")
                                     visible: isExitNode && !Preferences.advertiseExitNode
 
                                     onClicked: {
@@ -173,35 +146,46 @@ Kirigami.ScrollablePage {
                                             Tailscale.setExitNode(dnsName);
                                     }
                                 }
-                            }
-                        }
 
-                        Controls.Button {
-                            Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
-                            Controls.ToolTip.text: text
-                            Controls.ToolTip.visible: hovered
-                            display: Controls.Button.IconOnly
-                            icon.name: "view-list-details"
-                            text: i18nc("@label", "Details")
+                                Controls.MenuItem {
+                                    icon.name: "internet-web-browser"
+                                    text: i18nc("@label", "Open admin panel")
 
-                            onClicked: {
-                                App.setPeerDetails(tailscaleID);
-                                pageStack.layers.push('qrc:Peer.qml');
+                                    onClicked: Util.openUrl(adminPanelUrl)
+                                }
                             }
                         }
                     }
                 }
 
-                DropArea {
-                    anchors.fill: parent
+                RowLayout {
+                    visible: App.config.showTagsInPeerList && (tags.length > 0)
 
-                    onDropped: {
-                        TaildropSendJobFactory.sendFiles(dnsName, drop.urls);
-                    }
-                    onEntered: {
-                        drag.accept(Qt.LinkAction);
+                    Flow {
+                        Layout.alignment: Qt.AlignRight
+                        Layout.fillWidth: true
+
+                        Repeater {
+                            model: tags
+
+                            Kirigami.Chip {
+                                closable: false
+                                text: modelData
+                            }
+                        }
                     }
                 }
+
+                // DropArea {
+                //     anchors.fill: parent
+
+                //     onDropped: {
+                //         TaildropSendJobFactory.sendFiles(dnsName, drop.urls);
+                //     }
+                //     onEntered: {
+                //         drag.accept(Qt.LinkAction);
+                //     }
+                // }
             }
         }
     }

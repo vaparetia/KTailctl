@@ -30,18 +30,76 @@ A GUI to monitor and manage Tailscale on your Linux desktop, built using KDE Fra
 - [x] Flatpak
 - [ ] Localization
 
-## Developing
+## Development
+
+### Setup
+
+#### NixOS
+
+Make sure thate flake support is enabled (see [NixOS Wiki on Flakes](https://nixos.wiki/wiki/Flakes)).
+All required dependencies will be made availabe by entering the devshell via `nix develop --no-pure-eval`.
+This can be achieved automatically when using `direnv` with `direnv allow`.
+
+#### Fedora
+
+Install required packages via
+
+```shell
+sudo dnf install \
+  cmake \
+  extra-cmake-modules \
+  gcc-c++ \
+  golang \
+  json-devel \
+  kf6-breeze-icons-devel \
+  kf6-kconfig-devel \
+  kf6-kcoreaddons-devel \
+  kf6-kdbusaddons-devel \
+  kf6-kguiaddons-devel \
+  kf6-ki18n-devel \
+  kf6-kirigami-addons-devel \
+  kf6-kirigami-devel \
+  kf6-knotifications-devel \
+  kf6-kwindowsystem-devel \
+  kf6-qqc2-desktop-style \
+  qt6-qtbase-devel \
+  qt6-qtdeclarative-devel \
+  qt6-qtsvg-devel
+```
+
+### Compiling KTailctl
+
+1. Vendor go modules
+
+```shell
+pushd src/wrapper
+go mod vendor
+popd
+```
+
+2. Configure with CMake
+
+```shell
+cmake -Bbuild
+```
+
+3. Compile with CMake (change 16 to the number of thread you want to use)
+
+```shell
+cmake --build build --parallel 16
+```
+
+4. Run binary
+
+```shell
+./build/bin/ktailctl
+```
 
 ### Create a release
 
 1. Create a changelog file `changelog/vX.Y.Z.md`.
 2. Add a new release to `org.fkoehler.ktailctl.metainfo.xml`.
-3. Create a commit called `Release vX.Y.Z.`.
-4. Create a tag from changelog: `git tag -s -F changelog/vX.Y.Z.md vX.Y.Z`.
-5. Push tag: `git push origin vX.Y.Z`.
-
-### Install Dependencies using craft
-
-```bash
-craft kirigami ki18n kconfig knotifications kcoreaddons qtquickcontrols qqc2-desktop-style
-```
+3. Update the version in `CMakeLists.txt`
+4. Create a commit called `Release vX.Y.Z.`.
+5. Create a tag from changelog: `git tag -s -F changelog/vX.Y.Z.md vX.Y.Z`.
+6. Push tag: `git push origin vX.Y.Z`.

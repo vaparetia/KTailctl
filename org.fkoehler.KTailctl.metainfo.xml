@@ -35,11 +35,200 @@
       <caption>Exit node management</caption>
     </screenshot>
     <screenshot>
+      <image>https://raw.githubusercontent.com/f-koehler/KTailctl/main/screenshots/mullvadnodes.png</image>
+      <caption>Mullvad exit node selection</caption>
+    </screenshot>
+    <screenshot>
       <image>https://raw.githubusercontent.com/f-koehler/KTailctl/main/screenshots/settings.png</image>
       <caption>Management of app and Tailscale settings</caption>
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.21.5" date="2026-01-19" urgency="low">
+      <description>
+      <p>
+        No user-facing changes, only internal dependency updates.
+      </p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.21.5</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.21.5.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.21.5/tailwrap-vendor-v0.21.5.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.21.4" date="2025-11-16" urgency="low">
+      <description>
+      <p>
+        No user-facing changes, only internal dependency updates.
+      </p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.21.4</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.21.4.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.21.4/tailwrap-vendor-v0.21.4.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.21.3" date="2025-10-12" urgency="low">
+      <description>
+      <p>
+        Resolves an issue in other environments than KDE Plasma where KTailctl would not correctly minimize to the tray icon when the window is closed. Updates some dependencies to their latest versions.
+      </p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.21.3</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.21.3.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.21.3/tailwrap-vendor-v0.21.3.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.21.2" date="2025-09-19" urgency="low">
+      <description>
+      <p>
+        Fixes account switching and uses nicknames for accounts.
+      </p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.21.2</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.21.2.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.21.2/tailwrap-vendor-v0.21.2.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.21.1" date="2025-09-08" urgency="low">
+      <description>
+      <p>
+          No user-facing changes, updates internal dependencies.
+      </p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.21.1</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.21.1.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.21.1/tailwrap-vendor-v0.21.1.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.21.0" date="2025-07-31" urgency="low">
+      <description>
+      <p>
+        Adds basic multi-account/switching support and the option to show tags in the peer list. Improves readability of tray menu by using country names instead of codes. Fixes several bugs and updates dependencies to their latest versions.
+      </p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.21.0</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.21.0.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.21.0/tailwrap-vendor-v0.21.0.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.20.2" date="2025-06-02" urgency="low">
+      <description>
+        <p>No user-facing changes.</p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.20.2</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.20.2.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.20.2/tailwrap-vendor-v0.20.2.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.20.1" date="2025-04-14" urgency="low">
+      <description>
+        <p>Allows toggling tailscale via a middle click on the tray icon and updates dependencies.</p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.20.1</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.20.1.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.20.1/tailwrap-vendor-v0.20.1.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.20.0" date="2025-03-08" urgency="low">
+      <description>
+        <p>Reworks the peer list as well as exit node page and indicates exit node usage in the tray
+          icon. Also includes a lot of small bugfixes.</p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.20.0</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.20.0.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.20.0/tailwrap-vendor-v0.20.0.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.19.3" date="2025-02-14" urgency="low">
+      <description>
+        <p>Fixes crash caused by regression in v0.19.2.</p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.19.3</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.19.3.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.19.2" date="2025-02-14" urgency="low">
+      <description>
+        <p>Fixes the missing window icon.</p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.19.2</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.19.2.tar.gz</location>
+        </artifact>
+        <artifact type="source">
+          <location>
+            https://github.com/f-koehler/KTailctl/releases/download/v0.19.2/tailwrap-vendor-v0.19.2.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+    <release version="0.19.1" date="2025-01-17" urgency="medium">
+      <description>
+        <p>Fixes the flatpak version crashing after a few seconds.</p>
+      </description>
+      <url>https://github.com/f-koehler/KTailctl/releases/tag/v0.19.1</url>
+      <artifacts>
+        <artifact type="source">
+          <location>https://github.com/f-koehler/KTailctl/archive/refs/tags/v0.19.1.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
     <release version="0.19.0" date="2025-01-16" urgency="medium">
       <description>
         <p>This update prevents KTailctl from starting multiple instances and instead puts the

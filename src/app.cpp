@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Fabian Köhler <me@fkoehler.org>
 
 #include "app.hpp"
+#include "logging_app.hpp"
 #include "taildrop_receiver.hpp"
 #include <KSharedConfig>
 #include <KWindowConfig>
@@ -13,8 +14,6 @@
 
 #include <functional>
 
-Q_LOGGING_CATEGORY(logcat_app, "org.fkoehler.KTailctl.App")
-
 App::App(QObject *parent)
     : QObject(parent)
     , mConfig(KTailctlConfig::self())
@@ -25,7 +24,7 @@ App::App(QObject *parent)
     QObject::connect(Tailscale::instance(), &Tailscale::backendStateChanged, mTrayIcon, &TrayIcon::regenerate);
     QObject::connect(mTrayIcon, &TrayIcon::quitClicked, this, &App::quitApp);
 
-    QObject::connect(Tailscale::instance(), &Tailscale::refreshed, this, &App::refreshDetails);
+    QObject::connect(Tailscale::instance(), &Tailscale::statusRefreshed, this, &App::refreshDetails);
 
     mPeerModel->setSourceModel(Tailscale::instance()->peerModel());
     mPeerModel->setFilterRole(PeerModel::DnsNameRole);
@@ -33,7 +32,7 @@ App::App(QObject *parent)
     mMullvadNodesForCountryModel->setFilterRole(PeerModel::CountryCodeRole);
 
     if (KTailctlConfig::peerFilter() == "UNINITIALIZED") {
-        Tailscale::instance()->refresh();
+        Tailscale::instance()->refreshStatus();
         const QString domain = Tailscale::instance()->self().mDnsName.section('.', 1);
         mPeerModel->setFilterRegularExpression(domain);
         KTailctlConfig::setPeerFilter(domain);
@@ -86,7 +85,7 @@ void App::setPeerDetails(const QString &id)
         return peer.mId == id;
     });
     if (position == peers.end()) {
-        qCWarning(logcat_app) << "Peer" << id << "not found";
+        qCWarning(Logging::App) << "Peer" << id << "not found";
         return;
     }
     if (*position != mPeerDetails) {

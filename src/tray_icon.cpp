@@ -28,6 +28,8 @@ TrayIcon::TrayIcon(QObject *parent)
         mWindow->show();
     });
     mContextMenu->addSeparator();
+    mAccountsMenu = mContextMenu->addMenu(QIcon::fromTheme(QStringLiteral("user")), QStringLiteral("Accounts"));
+    mSelfMenu = mContextMenu->addMenu(QIcon::fromTheme(QStringLiteral("computer")), QStringLiteral("This Node"));
     mPeerMenu = mContextMenu->addMenu(QIcon::fromTheme(QStringLiteral("applications-network")), QStringLiteral("Peers"));
     mExitNodeMenu = mContextMenu->addMenu(QIcon::fromTheme(QStringLiteral("internet-services")), QStringLiteral("Exit nodes"));
     mUnsetAction = mExitNodeMenu->addAction(QIcon::fromTheme(QStringLiteral("dialog-cancel")), QStringLiteral("Unset"), [this] {
@@ -53,9 +55,12 @@ TrayIcon::TrayIcon(QObject *parent)
     buildUnsetAction();
     buildUseSuggestedAction();
     buildLastUsedAction();
+    buildTooltip();
+    buildSelfMenu();
 
     connect(mTailscale, &Tailscale::backendStateChanged, [this]() {
         updateIcon();
+        buildTooltip();
         if (mTailscale->backendState() == QStringLiteral("Running")) {
             mToggleAction->setChecked(true);
             mToggleAction->setText(QStringLiteral("Stop Tailscale"));
@@ -70,6 +75,8 @@ TrayIcon::TrayIcon(QObject *parent)
     });
     connect(mTailscale, &Tailscale::successChanged, [this]() {
         if (mTailscale->success()) {
+            buildTooltip();
+            buildSelfMenu();
             buildPeerMenu();
             buildMullvadMenu();
             mPeerMenu->setEnabled(true);
@@ -81,6 +88,11 @@ TrayIcon::TrayIcon(QObject *parent)
             mPeerMenu->setEnabled(false);
             mToggleAction->setEnabled(false);
             mExitNodeMenu->setEnabled(false);
+        }
+    });
+    connect(mTailscale, &Tailscale::accountsSucccessChanged, [this]() {
+        if (mTailscale->accountsSuccess()) {
+            buildAccountsMenu();
         }
     });
     connect(mTailscale, &Tailscale::isOperatorChanged, [this]() {
@@ -98,8 +110,13 @@ TrayIcon::TrayIcon(QObject *parent)
     connect(mTailscale, &Tailscale::suggestedExitNodeChanged, this, &TrayIcon::buildUseSuggestedAction);
     connect(mConfig, &KTailctlConfig::lastUsedExitNodeChanged, this, &TrayIcon::buildLastUsedAction);
     connect(mTailscale, &Tailscale::hasCurrentExitNodeChanged, this, &TrayIcon::buildUnsetAction);
+    connect(mTailscale, &Tailscale::hasCurrentExitNodeChanged, this, &TrayIcon::updateIcon);
+    connect(mTailscale, &Tailscale::hasCurrentExitNodeChanged, this, &TrayIcon::buildTooltip);
     connect(mTailscale, &Tailscale::currentExitNodeChanged, this, &TrayIcon::buildUnsetAction);
-    connect(mTailscale, &Tailscale::refreshed, this, &TrayIcon::buildMullvadMenu);
+    connect(mTailscale, &Tailscale::currentExitNodeChanged, this, &TrayIcon::buildTooltip);
+    connect(mTailscale, &Tailscale::statusRefreshed, this, &TrayIcon::buildMullvadMenu);
+    connect(mTailscale, &Tailscale::selfChanged, this, &TrayIcon::buildTooltip);
+    connect(mTailscale, &Tailscale::selfChanged, this, &TrayIcon::buildSelfMenu);
 
     connect(contextMenu(), &QMenu::aboutToShow, this, &TrayIcon::regenerate);
     connect(mConfig, &KTailctlConfig::trayIconThemeChanged, this, &TrayIcon::updateIcon);
@@ -107,7 +124,6 @@ TrayIcon::TrayIcon(QObject *parent)
         switch (reason) {
         case QSystemTrayIcon::ActivationReason::Trigger:
         case QSystemTrayIcon::ActivationReason::DoubleClick:
-        case QSystemTrayIcon::ActivationReason::MiddleClick:
             if (mWindow == nullptr) {
                 return;
             }
@@ -117,12 +133,27 @@ TrayIcon::TrayIcon(QObject *parent)
                 mWindow->show();
             }
             break;
+        case QSystemTrayIcon::ActivationReason::MiddleClick:
+            mTailscale->toggle();
         default:
             break;
         };
     });
 
     show();
+}
+
+void TrayIcon::buildSelfMenu()
+{
+    mSelfMenu->clear();
+    mSelfMenu->addAction(QIcon::fromTheme(QStringLiteral("edit-copy")), mTailscale->self().mDnsName, [this]() {
+        setClipboardText(mTailscale->self().mDnsName);
+    });
+    for (const auto &addr : mTailscale->self().mTailscaleIps) {
+        mSelfMenu->addAction(QIcon::fromTheme(QStringLiteral("edit-copy")), addr, [this, &addr]() {
+            setClipboardText(addr);
+        });
+    }
 }
 
 void TrayIcon::buildMullvadMenu()
@@ -156,9 +187,10 @@ void TrayIcon::buildMullvadMenu()
         for (int i = 0; i < newNumMullvadCountries; ++i) {
             const QModelIndex index = mTailscale->mullvadCountryModel()->index(i, 0);
             const QString countryCode = index.data(MullvadCountryModel::CountryCode).toString().toLower();
+            const QString countryName = index.data(MullvadCountryModel::CountryName).toString();
 
             // cppcheck-suppress constVariablePointer
-            QMenu *countryMenu = mMullvadMenu->addMenu(QIcon(QString(":/country-flags/country-flag-%1").arg(countryCode)), countryCode);
+            QMenu *countryMenu = mMullvadMenu->addMenu(QIcon(QString(":/country-flags/country-flag-%1").arg(countryCode)), countryName);
             mMullvadCountryMenus.insert(countryCode, countryMenu);
         }
     }
@@ -219,6 +251,10 @@ void TrayIcon::buildPeerMenu()
             createCopyAction(submenu, ip);
         }
 
+        submenu->addAction(QIcon::fromTheme(QStringLiteral("internet-web-browser")), QStringLiteral("Go to admin panel"), [this, &peer]() {
+            Util::openUrl(peer.mAdminPanelUrl);
+        });
+
         if (!mTailscale->isOperator()) {
             continue;
         }
@@ -237,6 +273,18 @@ void TrayIcon::buildPeerMenu()
                 mTailscale->setExitNode(peer.mDnsName);
             });
         }
+    }
+}
+void TrayIcon::buildAccountsMenu()
+{
+    mAccountsMenu->clear();
+
+    for (const AccountData &account : mTailscale->accountModel()->accounts()) {
+        QAction *action = mAccountsMenu->addAction(QIcon::fromTheme(QStringLiteral("user")), account.name, [this, &account]() {
+            this->mTailscale->switchAccount(account.id);
+        });
+        action->setCheckable(true);
+        action->setChecked(account.isCurrent);
     }
 }
 void TrayIcon::buildUseSuggestedAction()
@@ -274,14 +322,37 @@ void TrayIcon::buildUnsetAction()
     }
 }
 
+void TrayIcon::buildTooltip()
+{
+    QStringList tooltip;
+    tooltip << QStringLiteral("Status: %1").arg(mTailscale->backendState());
+    if (!mTailscale->self().mTailscaleIps.empty()) {
+        tooltip << QStringLiteral("IP: %1").arg(mTailscale->self().mTailscaleIps.front());
+    }
+    if (mTailscale->hasCurrentExitNode()) {
+        tooltip << QStringLiteral("Exit node: %1").arg(mTailscale->currentExitNode().mDnsName);
+    }
+    setToolTip(tooltip.join('\n'));
+}
+
 void TrayIcon::updateIcon()
 {
-    setIcon(QIcon(QString(":/icons/%1-%2")
-                      .arg((mTailscale->backendState() == "Running") ? QStringLiteral("online") : QStringLiteral("offline"), KTailctlConfig::trayIconTheme())));
+    QString name;
+    if (mTailscale->backendState() == "Running") {
+        if (mTailscale->hasCurrentExitNode()) {
+            name = QStringLiteral("exit-node");
+        } else {
+            name = QStringLiteral("online");
+        }
+    } else {
+        name = QStringLiteral("offline");
+    }
+    setIcon(QIcon(QString(":/icons/%1-%2").arg(name, KTailctlConfig::trayIconTheme())));
 }
 void TrayIcon::regenerate()
 {
     buildPeerMenu();
+    buildAccountsMenu();
     buildSelfHostedMenu();
 }
 
