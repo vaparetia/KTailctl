@@ -1,0 +1,155 @@
+import org.kde.kirigamiaddons.formcard as FormCard
+import org.fkoehler.KTailctl as KTailctl
+import org.kde.kirigami as Kirigami
+import QtQuick
+import QtQuick.Controls
+import "qrc:/ui/components"
+
+FormCard.FormCardPage {
+    property KTailctl.LoginProfile loginProfile: null
+
+    Component.onCompleted: {
+        console.log("Login profile:", loginProfile);
+    }
+
+    Timer {
+        id: refreshLoginProfilesTimer
+        interval: 300
+        repeat: false
+        onTriggered: KTailctl.Tailscale.refreshLoginProfiles()
+    }
+
+    DaemonError {}
+
+    OperatorWarning {}
+
+    AuthError {}
+
+    FormCard.FormHeader {
+        title: "Login Profile"
+    }
+
+    FormCard.FormCard {
+        FormCard.FormButtonDelegate {
+            id: loginProfileId
+            text: loginProfile?.id ?? ""
+            description: "ID"
+            trailingLogo.source: "edit-copy"
+            onClicked: KTailctl.Util.setClipboardText(loginProfile.id)
+        }
+
+        FormCard.FormTextFieldDelegate {
+            id: textName
+            label: "Name"
+            text: loginProfile?.name ?? "unknown"
+            enabled: loginProfile?.id === KTailctl.Tailscale.currentLoginProfileId
+            onEditingFinished: {
+                KTailctl.Tailscale.preferences.profileName = textName.text;
+                refreshLoginProfilesTimer.restart();
+                textName.focus = false;
+            }
+        }
+
+        // FormCard.FormButtonDelegate {
+        //     id: name
+        //     text: loginProfile?.name ?? ""
+        //     description: "Name"
+        //     trailingLogo.source: "edit-copy"
+        //     onClicked: KTailctl.Util.setClipboardText(loginProfile.name)
+        // }
+
+        FormCard.FormButtonDelegate {
+            id: key
+            text: loginProfile?.key ?? ""
+            description: "Key"
+            trailingLogo.source: "edit-copy"
+            onClicked: KTailctl.Util.setClipboardText(loginProfile.key)
+        }
+
+        FormCard.FormButtonDelegate {
+            id: nodeId
+            text: loginProfile?.nodeId ?? ""
+            description: "Node ID"
+            trailingLogo.source: "edit-copy"
+            onClicked: KTailctl.Util.setClipboardText(loginProfile.nodeId)
+        }
+
+        // currently only set on Windows
+        // FormCard.FormTextDelegate {
+        //     id: localUserId
+        //     text: loginProfile?.localUserId ?? ""
+        // }
+
+        FormCard.FormLinkDelegate {
+            id: controlUrl
+            url: loginProfile?.controlUrl ?? ""
+            text: loginProfile?.controlUrl ?? ""
+            description: "Control Pane URL"
+        }
+    }
+
+    FormCard.FormHeader {
+        title: "User Profile"
+    }
+
+    FormCard.FormCard {
+        FormCard.FormButtonDelegate {
+            id: userId
+            text: toString(loginProfile?.userProfile?.userId) ?? ""
+            description: "User ID"
+            trailingLogo.source: "edit-copy"
+            onClicked: KTailctl.Util.setClipboardText(toString(loginProfile.userProfile.userId))
+        }
+
+        FormCard.FormButtonDelegate {
+            id: loginName
+            description: "Login Name"
+            text: loginProfile?.userProfile?.loginName ?? ""
+            trailingLogo.source: "edit-copy"
+            onClicked: KTailctl.Util.setClipboardText(loginProfile.userProfile.loginName)
+        }
+
+        FormCard.FormLinkDelegate {
+            id: profilePic
+            text: loginProfile?.userProfile?.profilePicUrl ?? ""
+            url: loginProfile?.userProfile?.profilePicUrl ?? ""
+            description: "Profile Picture"
+            leading: Kirigami.Icon {
+                ToolTip.delay: Kirigami.Units.toolTipDelay
+                ToolTip.text: "Profile Picture"
+                ToolTip.visible: hovered
+                source: loginProfile?.userProfile?.profilePicUrl
+            }
+        }
+    }
+
+    FormCard.FormHeader {
+        title: "Network Profile Profile"
+    }
+
+    FormCard.FormCard {
+        FormCard.FormButtonDelegate {
+            id: magicDnsName
+            description: "Magic DNS Name"
+            text: loginProfile?.networkProfile?.magicDnsName ?? ""
+            trailingLogo.source: "edit-copy"
+            onClicked: KTailctl.Util.setClipboardText(loginProfile.networkProfile.magicDnsName)
+        }
+
+        FormCard.FormButtonDelegate {
+            id: domainName
+            text: loginProfile?.networkProfile?.domainName ?? ""
+            description: "Domain Name"
+            trailingLogo.source: "edit-copy"
+            onClicked: KTailctl.Util.setClipboardText(loginProfile.networkProfile.domainName)
+        }
+
+        FormCard.FormButtonDelegate {
+            id: displayName
+            text: loginProfile?.networkProfile?.displayName ?? ""
+            description: "Display Name"
+            trailingLogo.source: "edit-copy"
+            onClicked: KTailctl.Util.setClipboardText(loginProfile.networkProfile.displayName)
+        }
+    }
+}

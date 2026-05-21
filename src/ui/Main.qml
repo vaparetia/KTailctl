@@ -1,253 +1,116 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2023 Fabian Köhler <me@fkoehler.org>
-
 import QtQuick
-import QtQuick.Controls as Controls
+import QtQuick.Controls
 import QtQuick.Layouts
-import org.fkoehler.KTailctl
+import QtQml
 import org.kde.kirigami as Kirigami
-import org.kde.kirigamiaddons.delegates as Delegates
-import org.kde.config as KConfig
+import org.fkoehler.KTailctl as KTailctl
 
 Kirigami.ApplicationWindow {
     id: root
 
-    property string pageName
-
-    function pushPage(page): void {
-        if (pageName == page) {
-            return;
-        }
-
-        var pageObject = Qt.createComponent("org.fkoehler.KTailctl", page);
-        if (!pageObject) {
-            page = "Peers";
-            pageObject = Qt.createComponent("org.fkoehler.KTailctl", page);
-        }
-        pageStack.clear();
-        pageStack.layers.clear();
-        pageStack.push(pageObject);
-        pageName = page;
+    readonly property bool isOperator: {
+        const op = KTailctl.Tailscale.preferences.operatorUser;
+        return op !== "" && op === KTailctl.Util.systemUser();
     }
 
-    minimumHeight: Kirigami.Units.gridUnit * 20
-    minimumWidth: Kirigami.Units.gridUnit * 20
-    title: i18n("KTailctl")
+    globalDrawer: Kirigami.GlobalDrawer {
+        id: globalDrawer
 
-    contextDrawer: Kirigami.ContextDrawer {
-        id: contextDrawer
+        collapsed: true
+        collapsible: true
+        modal: false
+        title: "KTailctl"
+        titleIcon: ":/icons/logo.svg"
 
+        actions: [
+            Kirigami.PagePoolAction {
+                icon.name: "config-users"
+                page: "qrc:/ui/pages/LoginProfileList.qml"
+                pagePool: mainPagePool
+                text: i18n("Login Profiles")
+            },
+            Kirigami.PagePoolAction {
+                icon.name: "distribute-graph-directed"
+                page: "qrc:/ui/pages/PeerList.qml"
+                pagePool: mainPagePool
+                text: i18n("Peers")
+            },
+            Kirigami.PagePoolAction {
+                icon.name: "globe"
+                page: "qrc:/ui/pages/ExitNodeList.qml"
+                pagePool: mainPagePool
+                text: i18n("Exit Nodes")
+            },
+            Kirigami.PagePoolAction {
+                icon.name: "settings"
+                page: "qrc:/ui/pages/Settings.qml"
+                pagePool: mainPagePool
+                text: i18n("Settings")
+            },
+            Kirigami.PagePoolAction {
+                icon.name: "help-about"
+                page: "qrc:/ui/pages/About.qml"
+                pagePool: mainPagePool
+                text: i18n("About")
+            },
+            Kirigami.Action {
+                visible: root.isOperator && (KTailctl.Tailscale.status.backendState != KTailctl.Status.Starting) && (KTailctl.Tailscale.status.backendState != KTailctl.Status.Running)
+                icon.name: "media-playback-start"
+                text: i18n("Start Tailscale")
+                onTriggered: KTailctl.Tailscale.up()
+            },
+            Kirigami.Action {
+                visible: root.isOperator && ((KTailctl.Tailscale.status.backendState == KTailctl.Status.Starting) || (KTailctl.Tailscale.status.backendState == KTailctl.Status.Running))
+                icon.name: "process-stop"
+                text: i18n("Stop Tailscale")
+                onTriggered: KTailctl.Tailscale.down()
+            },
+            Kirigami.Action {
+                icon.name: "application-exit"
+                text: i18n("Quit")
+
+                onTriggered: Qt.quit()
+            }
+        ]
     }
-    globalDrawer: Kirigami.OverlayDrawer {
-        id: drawer
 
-        Kirigami.Theme.colorSet: Kirigami.Theme.View
-        Kirigami.Theme.inherit: false
-        bottomPadding: 0
-        drawerOpen: !Kirigami.Settings.isMobile && enabled
-        edge: Qt.application.layoutDirection === Qt.RightToLeft ? Qt.RightEdge : Qt.LeftEdge
-        handleClosedIcon.source: modal ? null : "sidebar-expand-left"
-        handleOpenIcon.source: modal ? null : "sidebar-collapse-left"
-        handleVisible: modal && enabled
-        leftPadding: 0
-        // Only modal when not collapsed, otherwise collapsed won't show.
-        modal: !enabled || Kirigami.Settings.isMobile || Kirigami.Settings.tabletMode || (applicationWindow().width < Kirigami.Units.gridUnit * 50 && !collapsed)
-        rightPadding: 0
-        topPadding: 0
-        width: Kirigami.Units.gridUnit * 16
-
-        contentItem: ColumnLayout {
-            spacing: 0
-
-            Controls.ToolBar {
-                Layout.bottomMargin: Kirigami.Units.smallSpacing / 2
-                Layout.fillWidth: true
-                Layout.preferredHeight: pageStack.globalToolBar.preferredHeight
-                leftPadding: Kirigami.Units.largeSpacing
-                rightPadding: Kirigami.Units.largeSpacing
-
-                contentItem: Kirigami.Heading {
-                    text: i18n("KTailctl")
-                }
-            }
-
-            Controls.ButtonGroup {
-                id: pageButtonGroup
-
-            }
-
-            Repeater {
-                readonly property list<Kirigami.Action> actions: [
-                    Kirigami.Action {
-                        icon.name: "user"
-                        text: i18n("Accounts")
-
-                        onTriggered: pushPage("Accounts")
-                    },
-                    Kirigami.Action {
-                        icon.name: "network-wired"
-                        text: i18n("Peers")
-
-                        onTriggered: pushPage("Peers")
-                    },
-                    Kirigami.Action {
-                        icon.name: "computer-symbolic"
-                        text: i18n("This PC")
-
-                        onTriggered: pushPage("Self")
-                    },
-                    Kirigami.Action {
-                        icon.name: "globe"
-                        text: i18n("Exit Nodes")
-
-                        onTriggered: pushPage("ExitNodes")
-                    },
-                    // Kirigami.Action {
-                    //     icon.name: "office-chart-line-stacked"
-                    //     text: i18n("Statistics")
-
-                    //     onTriggered: pushPage("Statistics")
-                    // },
-                    Kirigami.Action {
-                        icon.name: "settings-configure"
-                        text: i18n("Settings")
-
-                        onTriggered: pushPage("Settings")
-                    },
-                    Kirigami.Action {
-                        icon.name: "help-about"
-                        text: i18n("About KTailctl")
-
-                        onTriggered: pushPage("About")
-                    },
-                    Kirigami.Action {
-                        icon.name: (Tailscale.backendState == "Running") ? "process-stop" : "media-playback-start"
-                        text: (Tailscale.backendState == "Running") ? "Stop tailscale" : "Start tailscale"
-                        visible: Tailscale.success && Tailscale.isOperator
-
-                        onTriggered: {
-                            Tailscale.toggle();
-                        }
-                    },
-                    Kirigami.Action {
-                        icon.name: "application-exit"
-                        text: i18n("Quit")
-
-                        onTriggered: Qt.quit()
-                    }
-                ]
-
-                model: actions
-
-                delegate: Delegates.RoundedItemDelegate {
-                    required property var modelData
-
-                    Controls.ButtonGroup.group: pageButtonGroup
-                    Layout.fillWidth: true
-                    action: modelData
-                    padding: Kirigami.Units.largeSpacing
-                    visible: modelData.visible
-                }
-            }
-
-            Item {
-                Layout.fillHeight: true
-            }
-        }
-        Behavior on width {
-            NumberAnimation {
-                duration: Kirigami.Units.longDuration
-                easing.type: Easing.InOutQuad
-            }
-        }
-
-        onModalChanged: drawerOpen = !modal
+    Kirigami.PagePool {
+        id: mainPagePool
     }
 
     Component.onCompleted: {
-        pushPage("Peers");
-    }
-    onHeightChanged: saveWindowGeometryTimer.restart()
-    onWidthChanged: saveWindowGeometryTimer.restart()
-    onXChanged: saveWindowGeometryTimer.restart()
-    onYChanged: saveWindowGeometryTimer.restart()
-
-    Loader {
-        asynchronous: true
-        source: "About.qml"
-    }
-
-    Loader {
-        asynchronous: true
-        source: "Accounts.qml"
-    }
-
-    Loader {
-        asynchronous: true
-        source: "ExitNodes.qml"
-    }
-
-    Loader {
-        asynchronous: true
-        source: "MullvadNodes.qml"
-    }
-
-    Loader {
-        asynchronous: true
-        source: "Peer.qml"
-    }
-
-    Loader {
-        asynchronous: true
-        source: "Self.qml"
-    }
-
-    Loader {
-        asynchronous: true
-        source: "Settings.qml"
-    }
-
-    KConfig.WindowStateSaver {
-        configGroupName: "MainWindow"
-    }
-
-    // This timer allows to batch update the window size change to reduce
-    // the io load and also work around the fact that x/y/width/height are
-    // changed when loading the page and overwrite the saved geometry from
-    // the previous session.
-    Timer {
-        id: saveWindowGeometryTimer
-
-        interval: 1000
-
-        onTriggered: App.saveWindowGeometry(root)
+        mainPagePool.loadPage("qrc:/ui/pages/LoginProfileList.qml");
+        mainPagePool.loadPage("qrc:/ui/pages/PeerList.qml");
+        mainPagePool.loadPage("qrc:/ui/pages/ExitNodeList.qml");
+        mainPagePool.loadPage("qrc:/ui/pages/Settings.qml");
+        mainPagePool.loadPage("qrc:/ui/pages/About.qml");
+        pageStack.replace(mainPagePool.loadPage("qrc:/ui/pages/PeerList.qml"));
     }
 
     Timer {
-        //Tailscale.preferences.refresh();
-
-        id: refreshStatusTimer
-
-        interval: App.config.refreshInterval ? App.config.refreshInterval : 500
+        interval: KTailctl.Config.refreshInterval
         repeat: true
         running: true
         triggeredOnStart: true
 
-        onTriggered: {
-            Tailscale.refreshStatus();
-        }
+        onTriggered: KTailctl.Tailscale.status.refresh()
     }
 
     Timer {
-        id: refreshAccountsTimer
-
-        interval: App.config.refreshInterval ? App.config.refreshInterval : 500
+        interval: KTailctl.Config.refreshInterval
         repeat: true
         running: true
         triggeredOnStart: true
 
-        onTriggered: {
-            Tailscale.refreshAccounts();
-        }
+        onTriggered: KTailctl.Tailscale.preferences.refresh()
+    }
+
+    Timer {
+        interval: KTailctl.Config.refreshInterval
+        repeat: true
+        running: true
+        triggeredOnStart: true
+
+        onTriggered: KTailctl.Tailscale.refreshLoginProfiles()
     }
 }

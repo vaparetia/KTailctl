@@ -1,0 +1,57 @@
+#ifndef KTAILCTL_ICONS_TRAY_ICONS_TRAY_ICON_THEMES_HPP
+#define KTAILCTL_ICONS_TRAY_ICONS_TRAY_ICON_THEMES_HPP
+
+#include "ktailctl_config.h"
+#include <QBindable>
+#include <QObject>
+#include <QQmlEngine>
+#include <QStringList>
+#include <QtQmlIntegration/qqmlintegration.h>
+
+static const QStringList TrayIconThemesList = {
+@KTAILCTL_TRAY_ICON_THEMES_LITERAL_LIST@
+};
+
+class TrayIconThemes : public QObject {
+  Q_OBJECT
+  QML_ELEMENT
+  QML_SINGLETON
+  Q_PROPERTY(QStringList themes READ themes CONSTANT)
+  Q_PROPERTY(qsizetype currentIndex READ currentIndex WRITE setCurrentIndex BINDABLE bindableCurrentIndex)
+
+  private:
+    QProperty<qsizetype> mCurrentIndex;
+
+  public:
+    inline static TrayIconThemes *s_instance = nullptr;
+    static TrayIconThemes *create(QQmlEngine *, QJSEngine *) { return s_instance; }
+    static void setQmlInstance(TrayIconThemes *instance) { s_instance = instance; }
+
+    explicit TrayIconThemes(QObject* parent = nullptr) : QObject(parent) {
+      mCurrentIndex = TrayIconThemesList.indexOf(Config::trayIconTheme());
+      connect(Config::self(), &Config::trayIconThemeChanged, [this](){
+      mCurrentIndex = TrayIconThemesList.indexOf(Config::trayIconTheme());
+      });
+    }
+
+    [[nodiscard]] const QStringList& themes() const noexcept {
+        return ::TrayIconThemesList;
+    }
+
+    [[nodiscard]] int currentIndex() const noexcept { return mCurrentIndex; }
+
+    void setCurrentIndex(int index) {
+      if(index < TrayIconThemesList.size()) {
+          Config::setTrayIconTheme(TrayIconThemesList.at(index));
+          Config::self()->save();
+          mCurrentIndex = TrayIconThemesList.indexOf(Config::trayIconTheme());
+      }
+    }
+
+    [[nodiscard]] QBindable<int> bindableCurrentIndex()
+    {
+        return {&mCurrentIndex};
+    }
+};
+
+#endif

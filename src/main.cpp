@@ -1,133 +1,102 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2023 Fabian Köhler <me@fkoehler.org>
-
-#include <QApplication>
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQuickStyle>
-#include <QQuickWindow>
-#include <QUrl>
-#include <QtGlobal>
-#include <QtQml>
-
+#include "ktailctl_config.h"
+#include "tailscale/tailscale.hpp"
+#include "tray_icon/tray_icon.hpp"
+#include "tray_icon_themes.hpp"
+#include "util.hpp"
+#include "version-ktailctl.h"
 #include <KAboutData>
 #include <KDBusService>
 #include <KLocalizedContext>
 #include <KLocalizedString>
-#include <KWindowSystem>
+#include <QApplication>
+#include <QIcon>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QQuickWindow>
 
-#include "about.hpp"
-#include "app.hpp"
-#include "ktailctlconfig.h"
-#include "logging.hpp"
-#include "peer_model.hpp"
-#include "preferences.hpp"
-#include "speed_statistics.hpp"
-#include "statistics.hpp"
-#include "taildrop_sender.hpp"
-#include "tailscale.hpp"
-#include "util.hpp"
-#include "version-ktailctl.h"
-
-Q_DECL_EXPORT int main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-    qInstallMessageHandler(handleLogMessage);
+    const QApplication app(argc, argv);
 
-    QIcon::setFallbackSearchPaths(QIcon::fallbackSearchPaths() << QStringLiteral(":/country-flags"));
+    QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/logo.svg")));
 
-#ifdef __APPLE__
-    QQuickStyle::setStyle(QStringLiteral("macOS"));
-#endif
-    QApplication app(argc, argv); // NOLINT(misc-const-correctness)
-
-    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("ktailctl")));
-
+    KLocalizedString::setApplicationDomain(QByteArrayLiteral("org.fkoehler.KTailctl"));
     QCoreApplication::setOrganizationDomain(QStringLiteral("fkoehler.org"));
     QCoreApplication::setApplicationName(QStringLiteral("KTailctl"));
     QCoreApplication::setOrganizationName(QStringLiteral("fkoehler.org"));
-    KLocalizedString::setApplicationDomain(QByteArrayLiteral("org.fkoehler.KTailctl"));
-    KAboutData aboutData( // NOLINT(misc-const-correctness)
-                          // The program name used internally.
-        QStringLiteral("KTailctl"),
-        // A displayable program name string.
-        i18nc("@title", "KTailctl"),
-        // The program version string.
-        QStringLiteral(KTAILCTL_VERSION_STRING),
-        // Short description of what the app does.
-        i18n("GUI for tailscale on the KDE Plasma desktop"),
-        // The license this code is released under.
-        KAboutLicense::GPL,
-        // Copyright Statement.
-        i18n("(c) Fabian Koehler 2023"));
+
+    KAboutData aboutData(QStringLiteral("ktailctl"),
+                         i18nc("@title", "KTailctl"),
+                         QStringLiteral(KTAILCTL_VERSION_STRING),
+                         i18n("GUI for tailscale on the Linux desktop"),
+                         KAboutLicense::GPL,
+                         i18n("(c) Fabian Koehler 2023"));
 
     aboutData.setBugAddress("https://github.com/f-koehler/KTailctl/issues");
     aboutData.setDesktopFileName(QStringLiteral("org.fkoehler.KTailctl"));
     aboutData.setHomepage(QStringLiteral("https://github.com/f-koehler/KTailctl"));
     aboutData.setOrganizationDomain("fkoehler.org");
-    aboutData.addAuthor(i18nc("@info:credit", "Fabian Köhler"),
+    aboutData.addAuthor(i18nc("@info:credit", "Fabian Koehler"),
                         i18nc("@info:credit", "Project Maintainer"),
-                        QStringLiteral("me@fkoehler.org"),
+                        QStringLiteral("fabian@fkoehler.me"),
                         QStringLiteral("https://fkoehler.org"));
     aboutData.setProgramLogo(QIcon(QStringLiteral(":/icons/logo.svg")));
     KAboutData::setApplicationData(aboutData);
-    KDBusService service(KDBusService::Unique);
-    qInfo() << "KDBusService name:" << service.serviceName();
+    const KDBusService service(KDBusService::Unique);
 
-    auto *about = new AboutType();
-    auto *application = new App();
+    auto *tailscale = new Tailscale();
+    Tailscale::setQmlInstance(tailscale);
     auto *util = new Util();
+    Util::setQmlInstance(util);
+    auto *tray_icon_themes = new TrayIconThemes();
+    TrayIconThemes::setQmlInstance(tray_icon_themes);
 
-    if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
-        QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
-    }
-#ifdef KTAILCTL_FLATPAK_BUILD
-    QIcon::setThemeName(QStringLiteral("breeze"));
-#endif
+    // Forward-declared here; defined in the generated ktailctl_qmltyperegistrations.cpp.
+    // Called explicitly because QQmlModuleRegistration's lazy-callback is not reliably
+    // triggered when the module is loaded from a file-system qmldir without a plugin line.
+    void qml_register_types_org_fkoehler_KTailctl();
+    qml_register_types_org_fkoehler_KTailctl();
 
-    QQmlApplicationEngine engine; // NOLINT(misc-const-correctness)
-
-    qmlRegisterSingletonInstance("org.fkoehler.KTailctl", 1, 0, "AboutType", about);
-    qmlRegisterSingletonInstance("org.fkoehler.KTailctl", 1, 0, "Tailscale", Tailscale::instance());
-    qmlRegisterSingletonInstance("org.fkoehler.KTailctl", 1, 0, "Preferences", Preferences::instance());
-    qmlRegisterSingletonInstance("org.fkoehler.KTailctl", 1, 0, "App", application);
-    qmlRegisterSingletonInstance("org.fkoehler.KTailctl", 1, 0, "Util", util);
-    qmlRegisterSingletonInstance("org.fkoehler.KTailctl", 1, 0, "TaildropSendJobFactory", TaildropSendJobFactory::instance());
-
-    qmlRegisterType<SpeedStatistics>("org.fkoehler.KTailctl", 1, 0, "SpeedStatistics");
-    qmlRegisterType<Statistics>("org.fkoehler.KTailctl", 1, 0, "Statistics");
-    qmlRegisterType<KTailctlConfig>("org.fkoehler.KTailctl", 1, 0, "KTailctlConfig"); // TODO(fk): remove, now handled via CMake
+    QQmlApplicationEngine engine;
+    qmlRegisterSingletonInstance("org.fkoehler.KTailctl", 254, 0, "Config", Config::self());
+    qmlRegisterSingletonType("org.fkoehler.KTailctl", 254, 0, "About", [](QQmlEngine *engine, QJSEngine *) -> QJSValue {
+        return engine->toScriptValue(KAboutData::applicationData());
+    });
 
     engine.rootContext()->setContextObject(new KLocalizedContext(&engine));
-    engine.rootContext()->setContextProperty(QStringLiteral("styleName"), QQuickStyle::name());
     engine.loadFromModule("org.fkoehler.KTailctl", "Main");
     if (engine.rootObjects().isEmpty()) {
         return -1;
     }
 
     auto *window = dynamic_cast<QQuickWindow *>(engine.rootObjects().first());
-    application->trayIcon()->setWindow(window);
-    if (KTailctlConfig::startMinimized()) {
-        window->hide();
-    } else {
+
+    // clicking tray icon should toggle window
+    auto *tray_icon = new TrayIcon(tailscale);
+    tray_icon->show();
+    QObject::connect(tray_icon, &QSystemTrayIcon::activated, [window](const QSystemTrayIcon::ActivationReason &reason) {
+        switch (reason) {
+        case QSystemTrayIcon::ActivationReason::Trigger:
+        case QSystemTrayIcon::ActivationReason::DoubleClick:
+            if (window == nullptr) {
+                return;
+            }
+            if (window->isVisible()) {
+                window->hide();
+            } else {
+                window->show();
+            }
+            break;
+        case QSystemTrayIcon::ActivationReason::MiddleClick:
+            // TODO(fk): toggle tailscale
+        default:
+            break;
+        };
+    });
+    QObject::connect(tray_icon, &TrayIcon::showWindow, window, [window] {
         window->show();
-    }
-
-    // for screenshots for flatpak
-    // window->resize(QSize(1598, 869));
-
-    QObject::connect(&service, &KDBusService::activateRequested, &engine, [&engine, window](const QStringList &, const QString &) {
-        if (window) {
-            window->show();
-            KWindowSystem::updateStartupId(window);
-            window->raise();
-            KWindowSystem::activateWindow(window);
-        }
     });
+    QObject::connect(tray_icon, &TrayIcon::quitRequested, &app, &QCoreApplication::quit, Qt::QueuedConnection);
 
-    QApplication::setQuitOnLastWindowClosed(!KTailctlConfig::self()->enableTrayIcon());
-    QObject::connect(KTailctlConfig::self(), &KTailctlConfig::enableTrayIconChanged, []() {
-        QApplication::setQuitOnLastWindowClosed(!KTailctlConfig::self()->enableTrayIcon());
-    });
-
-    return QApplication::exec();
+    return app.exec();
 }

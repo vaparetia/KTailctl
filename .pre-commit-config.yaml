@@ -1,0 +1,145 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-illegal-windows-names
+      - id: check-json
+      - id: check-shebang-scripts-are-executable
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-vcs-permalinks
+      - id: check-xml
+      - id: debug-statements
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: forbid-new-submodules
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: "v22.1.5"
+    hooks:
+      - id: clang-format
+  - repo: https://github.com/neocmakelsp/neocmakelsp
+    rev: v0.10.2
+    hooks:
+      - id: neocmakelsp-format
+  - repo: local
+    hooks:
+      - id: qmlformat
+        name: qmlformat
+        description: Format QML files
+        entry: qmlformat-qt6 -i
+        types: [qml]
+        language: system
+      - id: qmllint
+        name: qmllint
+        description: Lint QML files
+        entry: qmllint-qt6 -I build/bin
+        types: [qml]
+        language: system
+      - id: sync-go-versions
+        name: sync Go versions
+        language: python
+        entry: scripts/sync_go_versions.py
+        pass_filenames: false
+        files: ^(src/tailscale/wrapper/go\.mod|tools/go\.mod)$
+      - id: gofmt
+        name: gofmt
+        language: golang
+        language_version: 1.26.2
+        entry: gofmt
+        args: [-l, -w]
+        types: [go]
+        files: ^src/tailscale/wrapper/
+      - id: govet
+        name: go vet
+        language: golang
+        language_version: 1.26.2
+        entry: bash -c
+        args: ["cd src/tailscale/wrapper && go vet ./..."]
+        pass_filenames: false
+        files: ^src/tailscale/wrapper/
+      - id: goimports
+        name: goimports
+        language: golang
+        language_version: 1.26.2
+        entry: goimports
+        args: [-w]
+        types: [go]
+        files: ^src/tailscale/wrapper/
+        additional_dependencies:
+          - "golang.org/x/tools/cmd/goimports@v0.45.0"
+      - id: gosec
+        name: gosec
+        language: golang
+        language_version: 1.26.2
+        entry: bash -c
+        args: ["cd src/tailscale/wrapper && gosec -exclude=G115 ./..."]
+        pass_filenames: false
+        files: ^src/tailscale/wrapper/
+        additional_dependencies:
+          - "github.com/securego/gosec/v2/cmd/gosec@v2.26.1"
+      - id: gocritic
+        name: go-critic
+        language: golang
+        language_version: 1.26.2
+        entry: bash -c
+        args: ["cd src/tailscale/wrapper && gocritic check ./..."]
+        pass_filenames: false
+        files: ^src/tailscale/wrapper/
+        additional_dependencies:
+          - "github.com/go-critic/go-critic/cmd/gocritic@v0.14.3"
+      - id: staticcheck
+        name: staticcheck
+        language_version: 1.26.2
+        language: golang
+        entry: bash -c
+        args: ["cd src/tailscale/wrapper && staticcheck ./..."]
+        pass_filenames: false
+        files: ^src/tailscale/wrapper/
+        additional_dependencies:
+          - "honnef.co/go/tools/cmd/staticcheck@v0.7.0"
+      - id: shfmt
+        name: shfmt
+        language: golang
+        language_version: 1.26.2
+        entry: shfmt
+        args: [-w]
+        types: [shell]
+        additional_dependencies:
+          - "mvdan.cc/sh/v3/cmd/shfmt@v3.13.1"
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.21.0
+    hooks:
+      - id: yamlfmt
+        exclude: '\.clang-format$'
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args: [--strict]
+        exclude: '\.clang-format$'
+  - repo: https://github.com/DetachHead/basedpyright-prek-mirror
+    rev: "1.39.4"
+    hooks:
+      - id: basedpyright
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint

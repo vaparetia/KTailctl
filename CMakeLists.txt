@@ -1,16 +1,18 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.31)
 
 project(
   ktailctl
-  VERSION 0.21.5
+  VERSION 0.22.0
   LANGUAGES C CXX)
 
 option(KTAILCTL_FLATPAK_BUILD "Build for Flatpak" OFF)
+option(KTAILCTL_ENABLE_TESTS "Enable unit tests" OFF)
+option(KTAILCTL_FETCH_GO "Fetch correct version of go" OFF)
 
 set(QT_MAJOR_VERSION 6)
-set(QT6_MIN_VERSION 6.5.0)
-set(KF6_MIN_VERSION 6.5.0)
-set(CMAKE_CXX_STANDARD 20)
+set(QT6_MIN_VERSION 6.10.0)
+set(KF6_MIN_VERSION 6.24.0)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -28,9 +30,7 @@ find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
 
-set(KDE_COMPILERSETTINGS_LEVEL 6.0)
-# add_definitions(-DQT_NO_CAST_FROM_ASCII -DQT_NO_CAST_TO_ASCII -DQT_NO_URL_CAST_FROM_STRING
-# -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT -DQT_USE_QSTRINGBUILDER )
+set(KDE_COMPILERSETTINGS_LEVEL 6.24)
 
 include(FeatureSummary)
 include(ECMSetupVersion)
@@ -39,7 +39,7 @@ include(ECMGenerateExportHeader)
 include(KDEInstallDirs)
 include(ECMFindQmlModule)
 include(KDECMakeSettings)
-# include(KDECompilerSettings NO_POLICY_SCOPE)
+include(KDECompilerSettings)
 include(ECMAddAppIcon)
 include(ECMDeprecationSettings)
 include(ECMQmlModule)
@@ -51,11 +51,10 @@ find_package(
   Qt6 ${QT6_MIN_VERSION} REQUIRED
   COMPONENTS Core
              Gui
-             # Qml
+             Qml
              Quick
              QuickControls2
              Svg
-             Test
              Widgets)
 
 qt6_policy(SET QTP0001 NEW)
@@ -74,10 +73,12 @@ find_package(
              Kirigami
              Notifications
              WindowSystem)
-find_package(nlohmann_json REQUIRED)
 
 add_subdirectory(src)
-add_subdirectory(tests)
+
+if(KTAILCTL_ENABLE_TESTS)
+  add_subdirectory(tests)
+endif()
 
 install(PROGRAMS org.fkoehler.KTailctl.desktop DESTINATION ${KDE_INSTALL_APPDIR})
 install(FILES org.fkoehler.KTailctl.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
